@@ -2,6 +2,8 @@
 
 Este proyecto implementa un sistema de monitoreo energético basado en Tasmota + MQTT + InfluxDB + Grafana. Puedes ejecutarlo tanto con Docker Compose como con Kubernetes (K3s). A continuación se explican ambos métodos.
 
+> **Guía detallada:** Para el paso a paso completo (requisitos del Mac, flasheo del Sonoff POWR316D, validaciones, Grafana y datos recopilados), consulta [GUIA_COMPLETA.md](GUIA_COMPLETA.md).
+
 ---
 
 ## 📦 Infraestructura del sistema

@@ -1,45 +1,51 @@
+# Docker Compose para el stack de monitoreo energético.
+# Flujo: Tasmota (MQTT) → Mosquitto → Telegraf → InfluxDB → Grafana
 version: '3.8'
 
 services:
+  # Broker MQTT: recibe telemetría del Sonoff/Tasmota en el puerto 1883
   mosquitto:
     image: eclipse-mosquitto
     ports:
-      - "1883:1883"
-      - "9001:9001"
+      - "1883:1883"   # MQTT (protocolo principal para Tasmota)
+      - "9001:9001"   # WebSockets MQTT (no usado por Tasmota, disponible para clientes web)
     volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - ./mosquitto/data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
+      - ./mosquitto/config:/mosquitto/config  # Configuración (mosquitto.conf)
+      - ./mosquitto/data:/mosquitto/data      # Persistencia de mensajes retenidos
+      - ./mosquitto/log:/mosquitto/log        # Logs del broker
     restart: always
 
+  # Base de datos de series temporales (InfluxDB 1.x con InfluxQL)
   influxdb:
     image: influxdb:1.8
     ports:
-      - "8086:8086"
+      - "8086:8086"   # API HTTP de InfluxDB
     volumes:
-      - ./influxdb:/var/lib/influxdb
+      - ./influxdb:/var/lib/influxdb  # Persistencia de la base de datos
     environment:
-      - INFLUXDB_DB=tasmota
-      - INFLUXDB_HTTP_AUTH_ENABLED=true
+      - INFLUXDB_DB=tasmota                    # Base de datos creada al arrancar
+      - INFLUXDB_HTTP_AUTH_ENABLED=true        # Requiere usuario/contraseña en las consultas
       - INFLUXDB_ADMIN_USER=admin
       - INFLUXDB_ADMIN_PASSWORD=admin123
     restart: always
 
+  # Agente que suscribe a MQTT y escribe las métricas en InfluxDB
   telegraf:
     image: telegraf:latest
     depends_on:
-      - influxdb
-      - mosquitto
+      - influxdb   # Destino de los datos
+      - mosquitto  # Origen de los datos MQTT
     volumes:
-      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro  # Config de solo lectura
     restart: always
 
+  # Panel de visualización de métricas energéticas
   grafana:
     image: grafana/grafana
     ports:
-      - "3000:3000"
+      - "3000:3000"   # Interfaz web de Grafana
     volumes:
-      - ./grafana:/var/lib/grafana
+      - ./grafana:/var/lib/grafana  # Dashboards, datasources y configuración persistida
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
